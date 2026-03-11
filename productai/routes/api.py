@@ -3,7 +3,7 @@
 import json
 import os
 from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, StreamingResponse
 from ..db import models
 from ..ai import service as ai_service
 from ..ai import autocomplete as ac
@@ -95,6 +95,35 @@ async def update_prd(prd_id: int, request: Request):
 async def delete_prd(prd_id: int):
     await models.delete_prd(prd_id)
     return RedirectResponse(f"{BASE_PATH}/", status_code=303)
+
+
+@router.get("/prds/{prd_id}/export")
+async def export_prd(prd_id: int):
+    """Export a PRD as plain-text markdown."""
+    prd = await models.get_prd(prd_id)
+    if not prd:
+        return PlainTextResponse("PRD not found", status_code=404)
+
+    lines = [f"# {prd['title']}", ""]
+    if prd.get("status"):
+        lines += [f"**Status:** {prd['status']}", ""]
+    if prd.get("overview"):
+        lines += ["## Overview", "", prd["overview"], ""]
+    if prd.get("problem_statement"):
+        lines += ["## Problem Statement", "", prd["problem_statement"], ""]
+    if prd.get("proposed_solution"):
+        lines += ["## Proposed Solution", "", prd["proposed_solution"], ""]
+    if prd.get("content"):
+        lines += ["## Full Document", "", prd["content"], ""]
+    if prd.get("timeline"):
+        lines += ["## Timeline", "", prd["timeline"], ""]
+    lines += [f"---", f"Created: {prd['created_at']} | Updated: {prd['updated_at']}", ""]
+
+    slug = prd["title"].lower().replace(" ", "-").encode("ascii", "ignore").decode()[:50]
+    return PlainTextResponse(
+        "\n".join(lines),
+        headers={"Content-Disposition": f'attachment; filename="prd-{slug}.md"'},
+    )
 
 
 # ── Admin Settings ─────────────────────────────────────

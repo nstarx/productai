@@ -2,7 +2,6 @@
 
 import bisect
 import logging
-import ssl
 from functools import lru_cache
 
 log = logging.getLogger(__name__)
@@ -101,46 +100,24 @@ WORD_ASSOCIATIONS = {
 
 
 def _load_nltk_words() -> set[str]:
-    """Load NLTK words corpus, downloading if needed."""
+    """Load NLTK words corpus (must be pre-installed, no download attempt)."""
     try:
-        import nltk
-        try:
-            from nltk.corpus import words
-            return set(w.lower() for w in words.words() if w.isalpha() and 2 <= len(w) <= 25)
-        except LookupError:
-            _ctx = ssl._create_default_https_context
-            ssl._create_default_https_context = ssl._create_unverified_context
-            try:
-                nltk.download('words', quiet=True)
-            finally:
-                ssl._create_default_https_context = _ctx
-            from nltk.corpus import words
-            return set(w.lower() for w in words.words() if w.isalpha() and 2 <= len(w) <= 25)
+        from nltk.corpus import words
+        return set(w.lower() for w in words.words() if w.isalpha() and 2 <= len(w) <= 25)
     except Exception as e:
-        log.warning("Could not load NLTK words: %s", e)
+        log.warning("NLTK words corpus not available: %s", e)
         return set()
 
 
 def _load_nltk_frequencies() -> dict[str, int]:
-    """Load word frequencies from NLTK Brown corpus."""
+    """Load word frequencies from NLTK Brown corpus (must be pre-installed)."""
     try:
-        import nltk
-        try:
-            from nltk.corpus import brown
-        except LookupError:
-            _ctx = ssl._create_default_https_context
-            ssl._create_default_https_context = ssl._create_unverified_context
-            try:
-                nltk.download('brown', quiet=True)
-            finally:
-                ssl._create_default_https_context = _ctx
-            from nltk.corpus import brown
-
+        from nltk.corpus import brown
         from collections import Counter
         freq = Counter(w.lower() for w in brown.words() if w.isalpha() and len(w) >= 2)
         return dict(freq)
     except Exception as e:
-        log.warning("Could not load NLTK Brown corpus: %s", e)
+        log.warning("NLTK Brown corpus not available: %s", e)
         return {}
 
 

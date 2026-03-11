@@ -60,6 +60,12 @@
                 </svg>
                 History
             </a>
+            <button onclick="openExportDialog()" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors" title="Export as text">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Export
+            </button>
             <form action="{{ base_path }}/api/prds/{{ prd.id }}/delete" method="post" onsubmit="return confirm('Delete this PRD?')">
                 <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -104,5 +110,68 @@
         Created {{ prd.created_at }} | Last updated {{ prd.updated_at }}
     </div>
 </div>
+
+<!-- Export dialog -->
+<div id="export-dialog" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="closeExportDialog()"></div>
+    <div class="absolute inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-3xl sm:max-h-[80vh] bg-white rounded-xl shadow-2xl flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Export PRD</h3>
+            <div class="flex items-center gap-2">
+                <button onclick="copyExportText()" id="copy-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Copy
+                </button>
+                <a href="{{ base_path }}/api/prds/{{ prd.id }}/export" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download
+                </a>
+                <button onclick="closeExportDialog()" class="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-auto p-6">
+            <pre id="export-text" class="whitespace-pre-wrap text-sm text-gray-800 font-mono leading-relaxed"></pre>
+        </div>
+    </div>
+</div>
+
+<script>
+async function openExportDialog() {
+    const dialog = document.getElementById('export-dialog');
+    const pre = document.getElementById('export-text');
+    pre.textContent = 'Loading...';
+    dialog.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    try {
+        const res = await fetch(`${BASE_PATH}/api/prds/{{ prd.id }}/export`);
+        pre.textContent = await res.text();
+    } catch (e) {
+        pre.textContent = 'Failed to load export.';
+    }
+}
+function closeExportDialog() {
+    document.getElementById('export-dialog').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+function copyExportText() {
+    const text = document.getElementById('export-text').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Copied!`;
+        setTimeout(() => {
+            btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> Copy`;
+        }, 2000);
+    });
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeExportDialog(); });
+</script>
 {% endblock %}
 
